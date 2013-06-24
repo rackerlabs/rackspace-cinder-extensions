@@ -8,7 +8,7 @@ setuptools.setup(
     author_email='cory.stone@gmail.com',
     description='Rackspace Cinder Extensions',
     license='Apache License, Version 2.0',
-    py_modules=['rackspace_cinder_extensions'],
+    packages=['rackspace_cinder_extensions'],
     url='https://github.com/rackerlabs/rackspace-cinder-extensions',
     install_requires=['cinder'],
     classifiers=[
