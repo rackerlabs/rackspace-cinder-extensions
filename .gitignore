@@ -17,3 +17,5 @@ debian/lunr-storage/
 debian/lunr-usage/
 debian/python-lunr/
 debian/tmp/
+dist/
+deb_dist/
