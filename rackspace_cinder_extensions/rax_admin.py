@@ -16,40 +16,48 @@ from cinder.db.sqlalchemy.api import model_query
 from cinder.db.sqlalchemy import models
 from cinder.api.openstack import wsgi
 from cinder.api import extensions
-from cinder import db
 
 
 LOG = logging.getLogger(__name__)
-#authorize = extensions.extension_authorizer('limits', 'quota-list')
+authorize = extensions.extension_authorizer('rax-admin', 'quota-list')
 
 
-class QuotaListController(wsgi.Controller):
-    """Controller for getting quota stats"""
+class RaxAdminController(wsgi.Controller):
+    """
+    This controller provides a place to put rackspace stuff that doesn't, or
+    can't be put anywhere else. For example, you can execute the method
+    _quota_list() with the following
+
+    curl -i http://cinder.rackspace.com/v1/{tenant_id}/rax-admin/action \
+        -X POST -d '{"quota-list": null}'
+
+    """
 
     def __init__(self, *args, **kwargs):
-        super(QuotaListController, self).__init__(*args, **kwargs)
+        super(RaxAdminController, self).__init__(*args, **kwargs)
 
-    @wsgi.action('os-quota-list')
-    def _quota_list(self, req, id, body):
+    @wsgi.action('quota-list')
+    def _quota_list(self, req, body):
         """Fetch Quota stats from the db"""
         # Fetch the context for this request
         context = req.environ['cinder.context']
         # Verify the user accessing this resource is allowed?
-        #authorize(context)
+        authorize(context)
         # Fetch all quota's that are not the default quota's
-        return dict(hello='hello')
-        #return model_query(context, models.QuotaUsage, read_deleted="no").all()
+        rows = model_query(context, models.QuotaUsage, read_deleted="no").all()
+        return dict( quotas=rows )
 
-class Quota_list(extensions.ExtensionDescriptor):
-    """Enable Quota List"""
 
-    name = "QuotaList"
-    alias = "os-quota-list"
+class Rax_admin(extensions.ExtensionDescriptor):
+    """Enable Rax Admin Extension"""
+
+    name = "Rax_admin"
+    alias = "rax-admin"
     namespace = "http://docs.openstack.org/volume/ext/admin-actions/api/v1.1"
     updated = "2014-07-08T00:00:00+00:00"
 
-    def get_controller_extensions(self):
-        extension = extensions.ControllerExtension(self,
-                                                   'volumes',
-                                                   QuotaListController())
+    def get_resources(self):
+        extension = extensions.ResourceExtension(
+            "rax-admin", RaxAdminController(),
+            collection_actions={'action': 'POST'})
         return [extension]
