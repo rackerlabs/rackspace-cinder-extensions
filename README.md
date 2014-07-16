@@ -20,9 +20,21 @@ Now build the `.deb` file:
 
     python setup.py --command-packages=stdeb.command bdist_deb
 
-### Extension: Snapshot_progress
+### Load all Extensions in the rackspace Extension package
+
+Add this line to `cinder.conf`:
+
+    osapi_volume_extension = rackspace_cinder_extensions.rax_extensions
+
+### Load Extension: os-snapshot-progress
 
 Add this line to `cinder.conf`:
 
     osapi_volume_extension=rackspace_cinder_extensions.snapshot_progress.Snapshot_progress
+
+### Load Extension: rax-admin
+
+Add this line to `cinder.conf`:
+
+    osapi_volume_extension=rackspace_cinder_extensions.rax_admin.Rax_admin
 
