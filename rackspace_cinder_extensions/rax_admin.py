@@ -21,17 +21,18 @@ from sqlalchemy import and_
 
 
 LOG = logging.getLogger(__name__)
-authorize = extensions.extension_authorizer('rax-admin', 'quota-list')
+authorize_quota_usage = extensions.extension_authorizer('rax-admin', 'quota-usage')
+authorize_top_usage = extensions.extension_authorizer('rax-admin', 'top-usage')
 
 
 class RaxAdminController(wsgi.Controller):
     """
     This controller provides a place to put rackspace stuff that doesn't, or
     can't be put anywhere else. For example, you can execute the method
-    _quota_list() with the following
+    self._quota_usage() with the following
 
     curl -i http://cinder.rackspace.com/v1/{tenant_id}/rax-admin/action \
-        -X POST -d '{"quota-in-use": null}'
+        -X POST -d '{"quota-usage": null}'
 
     """
     def __init__(self, *args, **kwargs):
@@ -46,7 +47,7 @@ class RaxAdminController(wsgi.Controller):
         # Fetch the context for this request
         context = req.environ['cinder.context']
         # Verify the user accessing this resource is allowed?
-        authorize(context)
+        authorize_quota_usage(context)
         rows = model_query(context, models.Quota, models.QuotaUsage,
                            read_deleted="no").\
             filter(models.QuotaUsage.project_id == models.Quota.project_id).\
@@ -74,7 +75,7 @@ class RaxAdminController(wsgi.Controller):
         # Get the context for this request
         context = req.environ['cinder.context']
         # Verify the user accessing this resource is allowed?
-        authorize(context)
+        authorize_top_usage(context)
         # Get all the quota defaults
         default_quotas = QUOTAS.get_defaults(context)
         # Fetch the projects with the most usage
