@@ -25,6 +25,19 @@ authorize_quota_usage = extensions.extension_authorizer('rax-admin', 'quota-usag
 authorize_top_usage = extensions.extension_authorizer('rax-admin', 'top-usage')
 
 
+class SafeDict(dict):
+    def get(self, key, default=None):
+        """ If the value of the get is None, return the default, if the value
+        is a dict, always return a SafeDict instead
+        """
+        value = dict.get(self, key, default)
+        if value is None:
+            value = default
+        if isinstance(value, dict):
+            return SafeDict(value)
+        return value
+
+
 class RaxAdminController(wsgi.Controller):
     """
     This controller provides a place to put rackspace stuff that doesn't, or
@@ -69,7 +82,7 @@ class RaxAdminController(wsgi.Controller):
             return default_quotas.get(resource_name, 'None')
 
         # Get the user specified limit, else default to the top 200 projects
-        limit = int(body['top-usage'].get('limit', 200))
+        limit = int(SafeDict(body).get('top-usage', {}).get('limit', 200))
 
         result = []
         # Get the context for this request
