@@ -21,7 +21,7 @@ with open('requirements.txt', 'r') as f:
 
 setup(
     name='rackspace_cinder_extensions',
-    version='0.1',
+    version='0.2',
     author='Cory Stone',
     author_email='cory.stone@gmail.com',
     maintainer='Cory Wright',
