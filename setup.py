@@ -16,9 +16,6 @@
 
 from setuptools import setup, find_packages
 
-with open('requirements.txt', 'r') as f:
-    requires = [x.strip() for x in f if x.strip()]
-
 setup(
     name='rackspace_cinder_extensions',
     version='0.2',
@@ -30,7 +27,7 @@ setup(
     license='Apache License, Version 2.0',
     packages=find_packages(exclude=['test']),
     url='https://github.com/rackerlabs/rackspace_cinder_extensions',
-    install_requires=requires,
+    install_requires=[],
     data_files=[
         ('share/doc/python-rackspace-cinder-extensions',
          ['CHANGES', 'CONTRIBUTORS', 'LICENSE', 'README.md']),
