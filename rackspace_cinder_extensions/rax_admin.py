@@ -140,7 +140,8 @@ class RaxAdminController(wsgi.Controller):
         Returns Lunr node information for a specific node
         :param req: python-cinderclient request
         :param body: python-cinderclinet request's body
-        :return: {"node": [{node1}] }
+                    {"get-node": {"id": "<node_id>"}}
+        :return: {"node": {<node data>} }
         """
         cinder_context = req.environ['cinder.context']
         authorize_get_node(cinder_context)
@@ -153,6 +154,17 @@ class RaxAdminController(wsgi.Controller):
     @wsgi.action('get-volume')
     def _get_volume(self, req, body):
         """
+        Returns Lunr, Cinder, and storage node GET data for a volume
+        :param req: python-cinderclient request
+        :param body: python-cinderclinet request's body
+                   {"get-volume": {"id": "<volume_id>"}}
+        :return: {"volume": {"storage_volumes": [{<storage_volumes vol1>}],
+                             "storage_backups": [{<storage_backups backup 1>}, {backup 2}, ...],
+                             "storage_exports": [{<storage_exports export 1>}, {export 2 ?}, ...],
+                             "lunr_nodes": [{<lunr_nodes data>}],
+                             "lunr_backups": [{<lunr_backups data backup 1>}, {backup 2}, ...],
+                             "lunr_exports": [{<lunr_exports data export 1>}, {export 2 ?}, ...],
+                             "lunr_volumes": [{<lunr_volumes data>}] }
         """
         cinder_context = req.environ['cinder.context']
         authorize_get_volume(cinder_context)
@@ -204,6 +216,13 @@ class RaxAdminController(wsgi.Controller):
     @wsgi.action('list-nodes')
     def _list_nodes(self, req, body):
         """
+        Returns Lunr Nodes LIST
+        :param req: python-cinderclient request
+        :param body: python-cinderclient request's body
+                    {"list-nodes": null}
+        :return: {"nodes": [{"lunr_nodes": {<Lunr node data 1st node>},
+                            {"lunr_nodes": {<Lunr node data 2nd node>},
+                            {"lunr_nodes": {<Lunr node data 3rd node>}]
         """
         cinder_context = req.environ['cinder.context']
         authorize_get_node(cinder_context)
@@ -224,6 +243,16 @@ class RaxAdminController(wsgi.Controller):
     @wsgi.action('list-node-volumes')
     def _list_node_volumes(self, req, body):
         """
+        Returns Lunr and storage data for each volume on a specified node.
+        :param req: python-cinderclient request
+        :param body: python-cinderclient request's body
+                    {"list-node-volumes": {"node_id": "<node_id>"}}
+        :return: {"volumes": [ {"storage_volumes": {<storage volume data 1st volume>},
+                                "lunr_volumes": {<Lunr volume data 1st volume>} },
+                               {"storage_volumes": {<storage volume data 2nd volume>},
+                                "lunr_volumes": {<Lunr volume data 2nd volume>} },
+                                ...
+                            ]
         """
         cinder_context = req.environ['cinder.context']
         authorize_list_node_volumes(cinder_context)
@@ -351,7 +380,6 @@ def lunr_except_handler(client_call, **kwargs):
             for item in call_data:
                 item.update({'code': call_data_code})
         elif isinstance(call_data, list) and len(call_data) == 0:
-            #call_data.update({'code': call_data_code})
             call_data.append({'code': call_data_code})
         return call_data
     except lunrclient.client.LunrError as e:
