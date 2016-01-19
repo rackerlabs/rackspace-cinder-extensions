@@ -227,11 +227,11 @@ class RaxAdminController(wsgi.Controller):
         """
         cinder_context = req.environ['cinder.context']
         authorize_list_nodes(cinder_context)
-        #kwargs = SafeDict(body).get('list-nodes', {})
+        kwargs = SafeDict(body).get('list-nodes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_nodes_tmp = lunr_except_handler(lambda: lunr_client.nodes.list())
-        nodes = {"count": len(lunr_nodes_tmp), "nodes": lunr_nodes_tmp}
+        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
+        nodes = {"count": len(lunr_nodes), "nodes": lunr_nodes}
         return nodes
 
     @wsgi.action('list-node-volumes')
