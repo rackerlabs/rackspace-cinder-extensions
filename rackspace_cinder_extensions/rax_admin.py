@@ -17,6 +17,7 @@ except ImportError:
 from cinder.openstack.common import log as logging
 from cinder.db.sqlalchemy.api import model_query
 from cinder.db.sqlalchemy.api import volume_get
+from cinder.db.sqlalchemy.api import volume_get_all
 from cinder.db.sqlalchemy.api import volume_get_all_by_host
 from cinder.db.sqlalchemy import models
 from cinder.api.openstack import wsgi
@@ -181,17 +182,10 @@ class RaxAdminController(wsgi.Controller):
         lunr_exports = lunr_except_handler(lambda: lunr_client.exports.get(volume_id))
         # Get Lunr node id information for direct storage node query
         lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes['node_id']))
-        node_attributes_list = ['id', 'name', 'hostname', 'code']
-        node_attribute_keep = {}
-        for node in lunr_nodes:
-            for item in node_attributes_list:
-                if item in lunr_nodes.keys():
-                    node_attribute_keep.update({item: lunr_nodes[item]})
-        # Add Lunr response data to volume dictionary
         volume.update(dict(lunr_volumes=lunr_volumes))
         if lunr_exports['code'] == 200:
             volume.update(dict(lunr_exports=[lunr_exports]))
-        volume.update(dict(lunr_nodes=node_attribute_keep))
+        volume.update(dict(lunr_nodes=lunr_nodes))
         # Get volume data specific to the storage node resource (direct from storage node)
         url = 'http://' + lunr_nodes['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
@@ -301,7 +295,6 @@ class RaxAdminController(wsgi.Controller):
         cinder_context = req.environ['cinder.context']
         authorize_list_lunr_volumes(cinder_context)
         kwargs = SafeDict(body).get('list-lunr-volumes', {})
-        #kwargs.update({'status': 'ACTIVE'})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
         lunr_volumes_data = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
@@ -369,6 +362,5 @@ def lunr_except_handler(client_call, **kwargs):
         elif isinstance(e.code, dict):
             return {'code': e.code}
         return e.code
-        #return e
 
 
