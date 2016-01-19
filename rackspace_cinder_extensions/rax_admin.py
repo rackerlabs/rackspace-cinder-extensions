@@ -226,7 +226,7 @@ class RaxAdminController(wsgi.Controller):
                             {<Lunr node data 3rd node>}]}
         """
         cinder_context = req.environ['cinder.context']
-        authorize_get_node(cinder_context)
+        authorize_list_nodes(cinder_context)
         #kwargs = SafeDict(body).get('list-nodes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
