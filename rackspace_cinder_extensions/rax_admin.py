@@ -255,36 +255,50 @@ class RaxAdminController(wsgi.Controller):
         if 'node_id' in kwargs:
             lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
             hostname = lunr_node['cinder_host']
-            cinder_volumes_data = volume_get_all_by_host(cinder_context, hostname=hostname, marker=None, limit=None,
-                                                         sort_key='project_id', sort_dir='asc', filters=kwargs)
+            cinder_volumes_data = volume_get_all_by_host(cinder_context, host=hostname)
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            elif dict(cinder_volumes_data):
+                cinder_volumes_data_list = [cinder_volumes_data]
+                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
             else:
-                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
             return cinder_volumes
         elif 'id' in kwargs:
             cinder_volumes_data = volume_get(cinder_context, volume_id=kwargs['id'])
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            elif dict(cinder_volumes_data):
+                cinder_volumes_data_list = [cinder_volumes_data]
+                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
             else:
-                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
             return cinder_volumes
         elif 'account_id' in kwargs:
-            cinder_volumes_data = volume_get_all_by_project(cinder_context, project_id=kwargs['account_id'],
-                                                            marker=None, limit=None, sort_key='project_id',
-                                                            sort_dir='asc', filters=kwargs)
+            project_id = kwargs['account_id']
+            kwargs.clear()
+            kwargs.update({'project_id': project_id})
+            cinder_volumes_data = volume_get_all(cinder_context, marker=None, limit=None,
+                                                 sort_key='project_id',
+                                                 sort_dir='asc', filters=kwargs)
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            elif dict(cinder_volumes_data):
+                cinder_volumes_data_list = [cinder_volumes_data]
+                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
             else:
-                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
             return cinder_volumes
-        elif 'status' in kwargs:
+        else:
             cinder_volumes_data = volume_get_all(cinder_context, marker=None, limit=None, sort_key='project_id',
                                                  sort_dir='asc', filters=kwargs)
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            elif dict(cinder_volumes_data):
+                cinder_volumes_data_list = [cinder_volumes_data]
+                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
             else:
-                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
             return cinder_volumes
 
     @wsgi.action('list-out-rotation-nodes')
