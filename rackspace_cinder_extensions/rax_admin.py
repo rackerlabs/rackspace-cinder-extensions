@@ -255,7 +255,8 @@ class RaxAdminController(wsgi.Controller):
         if 'node_id' in kwargs:
             lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
             hostname = lunr_node['cinder_host']
-            cinder_volumes_data = volume_get_all_by_host(cinder_context, hostname)
+            cinder_volumes_data = volume_get_all_by_host(cinder_context, hostname=hostname, marker=None, limit=None,
+                                                         sort_key='project_id', sort_dir='asc', filters=kwargs)
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
             else:
@@ -271,7 +272,7 @@ class RaxAdminController(wsgi.Controller):
         elif 'account_id' in kwargs:
             cinder_volumes_data = volume_get_all_by_project(cinder_context, project_id=kwargs['account_id'],
                                                             marker=None, limit=None, sort_key='project_id',
-                                                            sort_dir='asc', filters=None)
+                                                            sort_dir='asc', filters=kwargs)
             if isinstance(cinder_volumes_data, list):
                 cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
             else:
