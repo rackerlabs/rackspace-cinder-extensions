@@ -252,68 +252,39 @@ class RaxAdminController(wsgi.Controller):
         kwargs = SafeDict(body).get('list-volumes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
+        data_name = "volumes"
         if 'node_id' in kwargs:
             lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
             hostname = lunr_node['cinder_host']
-            cinder_volumes_data = volume_get_all_by_host(cinder_context, host=hostname)
-            if isinstance(cinder_volumes_data, list):
-                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-            elif dict(cinder_volumes_data):
-                cinder_volumes_data_list = [cinder_volumes_data]
-                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
-            else:
-                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+            cinder_volumes = cinder_list_handler(volume_get_all_by_host(cinder_context, host=hostname), data_name)
             return cinder_volumes
         if 'restore_of' in kwargs:
             lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
-            cinder_volumes_data = []
-            if len(lunr_volumes) >= 1:
+            cinder_volumes_list = []
+            if len(lunr_volumes) > 0:
                 for volume in lunr_volumes:
                     if 'id' in volume:
-                        cinder_volumes_data.append(volume_get(cinder_context, volume_id=volume['id']))
-            if isinstance(cinder_volumes_data, list):
-                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-            elif dict(cinder_volumes_data):
-                cinder_volumes_data_list = [cinder_volumes_data]
-                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
+                        cinder_volumes_list.append(volume_get(cinder_context, volume_id=volume['id']))
+            if isinstance(cinder_volumes_list, list):
+                cinder_volumes = {"count": len(cinder_volumes_list), data_name: cinder_volumes_list}
             else:
-                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+                cinder_volumes = {"count": 0, "volumes": cinder_volumes_list}
             return cinder_volumes
         elif 'id' in kwargs:
-            cinder_volumes_data = volume_get(cinder_context, volume_id=kwargs['id'])
-            if isinstance(cinder_volumes_data, list):
-                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-            elif dict(cinder_volumes_data):
-                cinder_volumes_data_list = [cinder_volumes_data]
-                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
-            else:
-                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+            cinder_volumes = cinder_list_handler(volume_get(cinder_context, volume_id=kwargs['id']), data_name)
             return cinder_volumes
         elif 'account_id' in kwargs:
             project_id = kwargs['account_id']
             kwargs.clear()
             kwargs.update({'project_id': project_id})
-            cinder_volumes_data = volume_get_all(cinder_context, marker=None, limit=None,
-                                                 sort_key='project_id',
-                                                 sort_dir='asc', filters=kwargs)
-            if isinstance(cinder_volumes_data, list):
-                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-            elif dict(cinder_volumes_data):
-                cinder_volumes_data_list = [cinder_volumes_data]
-                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
-            else:
-                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
+                                                                sort_key='project_id',
+                                                                sort_dir='asc', filters=kwargs), data_name)
             return cinder_volumes
         else:
-            cinder_volumes_data = volume_get_all(cinder_context, marker=None, limit=None, sort_key='project_id',
-                                                 sort_dir='asc', filters=kwargs)
-            if isinstance(cinder_volumes_data, list):
-                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-            elif dict(cinder_volumes_data):
-                cinder_volumes_data_list = [cinder_volumes_data]
-                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
-            else:
-                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
+                                                                sort_key='project_id', sort_dir='asc',
+                                                                filters=kwargs), data_name)
             return cinder_volumes
 
     @wsgi.action('list-out-rotation-nodes')
@@ -421,5 +392,19 @@ def lunr_except_handler(client_call, **kwargs):
         elif isinstance(e.code, dict):
             return {'code': e.code}
         return e.code
+
+
+def cinder_list_handler(client_call, data_name):
+    cinder_return_data = client_call
+    cinder_return_data_list = []
+    if isinstance(cinder_return_data, list):
+        cinder_data = {"count": len(cinder_return_data), data_name: cinder_return_data}
+    elif dict(cinder_return_data):
+        cinder_return_data_list.append(cinder_return_data)
+        cinder_data = {"count": len(cinder_return_data_list), data_name: cinder_return_data_list}
+    else:
+        cinder_return_data_list.append(cinder_return_data)
+        cinder_data = {"count": 0, data_name: cinder_return_data_list}
+    return cinder_data
 
 
