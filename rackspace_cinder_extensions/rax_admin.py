@@ -19,6 +19,7 @@ from cinder.db.sqlalchemy.api import model_query
 from cinder.db.sqlalchemy.api import volume_get
 from cinder.db.sqlalchemy.api import volume_get_all
 from cinder.db.sqlalchemy.api import volume_get_all_by_host
+from cinder.db.sqlalchemy.api import volume_get_all_by_project
 from cinder.db.sqlalchemy import models
 from cinder.api.openstack import wsgi
 from cinder.api import extensions
@@ -42,8 +43,8 @@ authorize_quota_usage = extensions.extension_authorizer('rax-admin', 'quota-usag
 authorize_top_usage = extensions.extension_authorizer('rax-admin', 'top-usage')
 authorize_list_nodes = extensions.extension_authorizer('rax-admin', 'list-nodes')
 authorize_list_nodes_out_rotation = extensions.extension_authorizer('rax-admin', 'list-nodes-out-rotation')
+authorize_list_volumes = extensions.extension_authorizer('rax-admin', 'list-volumes')
 authorize_list_lunr_volumes = extensions.extension_authorizer('rax-admin', 'list-lunr-volumes')
-authorize_list_node_volumes = extensions.extension_authorizer('rax-admin', 'list-node-volumes')
 authorize_get_node = extensions.extension_authorizer('rax-admin', 'get-node')
 authorize_get_volume = extensions.extension_authorizer('rax-admin', 'get-volume')
 authorize_status_volumes_all = extensions.extension_authorizer('rax-admin', 'status-volumes-all')
@@ -234,28 +235,56 @@ class RaxAdminController(wsgi.Controller):
         nodes = {"count": len(lunr_nodes), "nodes": lunr_nodes}
         return nodes
 
-    @wsgi.action('list-node-volumes')
-    def _list_node_volumes(self, req, body):
+    @wsgi.action('list-volumes')
+    def _list_volumes(self, req, body):
         """
-        Returns Cinder volume data for a specific Lunr storage node
+        Returns Cinder volume data for queries with Lunr kwargs filters
         :param req: python-cinderclient request
         :param body: python-cinderclient request's body
-                    {"list-node-volumes": {"node_id": "<node_id>"}}
-        :return: {"count": <count>, "volumes": [ {<storage volume data 1st volume>},
-                                       {<storage volume data 2nd volume>},
+                    {"list-volumes": {"node_id": "<node_id>"}}
+        :return: {"count": <count>, "volumes": [ {<volume data 1st volume>},
+                                       {<volume data 2nd volume>},
                                 ...
                                      ]}
         """
         cinder_context = req.environ['cinder.context']
-        authorize_list_node_volumes(cinder_context)
-        kwargs = SafeDict(body).get('list-node-volumes', {})
+        authorize_list_volumes(cinder_context)
+        kwargs = SafeDict(body).get('list-volumes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        storage_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
-        hostname = storage_node['cinder_host']
-        cinder_volumes_data = volume_get_all_by_host(cinder_context, hostname)
-        cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
-        return cinder_volumes
+        if 'node_id' in kwargs:
+            lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
+            hostname = lunr_node['cinder_host']
+            cinder_volumes_data = volume_get_all_by_host(cinder_context, hostname)
+            if isinstance(cinder_volumes_data, list):
+                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            else:
+                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+            return cinder_volumes
+        elif 'id' in kwargs:
+            cinder_volumes_data = volume_get(cinder_context, volume_id=kwargs['id'])
+            if isinstance(cinder_volumes_data, list):
+                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            else:
+                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+            return cinder_volumes
+        elif 'account_id' in kwargs:
+            cinder_volumes_data = volume_get_all_by_project(cinder_context, project_id=kwargs['account_id'],
+                                                            marker=None, limit=None, sort_key='project_id',
+                                                            sort_dir='asc', filters=None)
+            if isinstance(cinder_volumes_data, list):
+                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            else:
+                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+            return cinder_volumes
+        elif 'status' in kwargs:
+            cinder_volumes_data = volume_get_all(cinder_context, marker=None, limit=None, sort_key='project_id',
+                                                 sort_dir='asc', filters=kwargs)
+            if isinstance(cinder_volumes_data, list):
+                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            else:
+                cinder_volumes = {"count": 0, "volumes": cinder_volumes_data}
+            return cinder_volumes
 
     @wsgi.action('list-out-rotation-nodes')
     def _list_out_rotation_nodes(self, req, body):
