@@ -264,6 +264,21 @@ class RaxAdminController(wsgi.Controller):
             else:
                 cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
             return cinder_volumes
+        if 'restore_of' in kwargs:
+            lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
+            cinder_volumes_data = []
+            if len(lunr_volumes) >= 1:
+                for volume in lunr_volumes:
+                    if 'id' in volume:
+                        cinder_volumes_data.append(volume_get(cinder_context, volume_id=volume['id']))
+            if isinstance(cinder_volumes_data, list):
+                cinder_volumes = {"count": len(cinder_volumes_data), "volumes": cinder_volumes_data}
+            elif dict(cinder_volumes_data):
+                cinder_volumes_data_list = [cinder_volumes_data]
+                cinder_volumes = {"count": len(cinder_volumes_data_list), "volumes": cinder_volumes_data_list}
+            else:
+                cinder_volumes = {"count": 0, "volumes": [cinder_volumes_data]}
+            return cinder_volumes
         elif 'id' in kwargs:
             cinder_volumes_data = volume_get(cinder_context, volume_id=kwargs['id'])
             if isinstance(cinder_volumes_data, list):
