@@ -152,7 +152,7 @@ class RaxAdminController(wsgi.Controller):
         node_id = str(SafeDict(body).get('get-node', {}).get('id'))
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        node = lunr_except_handler(lambda: lunr_client.nodes.get(node_id))
+        node = lunr_except_handler(lunr_client.nodes.get(node_id))
         return dict(node=node)
 
     @wsgi.action('get-volume')
@@ -179,10 +179,10 @@ class RaxAdminController(wsgi.Controller):
         tenant_id = 'admin'
         # Get Lunr specific data for volume
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.get(volume_id))
-        lunr_exports = lunr_except_handler(lambda: lunr_client.exports.get(volume_id))
+        lunr_volumes = lunr_except_handler(lunr_client.volumes.get(volume_id))
+        lunr_exports = lunr_except_handler(lunr_client.exports.get(volume_id))
         # Get Lunr node id information for direct storage node query
-        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes['node_id']))
+        lunr_nodes = lunr_except_handler(lunr_client.nodes.get(lunr_volumes['node_id']))
         volume.update(dict(lunr_volumes=lunr_volumes))
         if lunr_exports['code'] == 200:
             volume.update(dict(lunr_exports=[lunr_exports]))
@@ -190,9 +190,9 @@ class RaxAdminController(wsgi.Controller):
         # Get volume data specific to the storage node resource (direct from storage node)
         url = 'http://' + lunr_nodes['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
-        storage_volumes = lunr_except_handler(lambda: storage_client.volumes.get(volume_id))
-        storage_exports = lunr_except_handler(lambda: storage_client.exports.get(volume_id))
-        storage_backups = lunr_except_handler(lambda: storage_client.backups.list(volume_id))
+        storage_volumes = lunr_except_handler(storage_client.volumes.get(volume_id))
+        storage_exports = lunr_except_handler(storage_client.exports.get(volume_id))
+        storage_backups = lunr_except_handler(storage_client.backups.list(volume_id))
         # Add storage node response data to volume dictionary
         volume.update(dict(storage_volumes=storage_volumes))
         if storage_exports['code'] == 200:
@@ -231,7 +231,7 @@ class RaxAdminController(wsgi.Controller):
         kwargs = SafeDict(body).get('list-nodes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
+        lunr_nodes = lunr_except_handler(lunr_client.nodes.list(**kwargs))
         nodes = {"count": len(lunr_nodes), "nodes": lunr_nodes}
         return nodes
 
@@ -254,12 +254,12 @@ class RaxAdminController(wsgi.Controller):
         lunr_client = lunrclient.client.LunrClient(tenant_id)
         data_name = "volumes"
         if 'node_id' in kwargs:
-            lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
+            lunr_node = lunr_except_handler(lunr_client.nodes.get(**kwargs))
             hostname = lunr_node['cinder_host']
             cinder_volumes = cinder_list_handler(volume_get_all_by_host(cinder_context, host=hostname), data_name)
             return cinder_volumes
         if 'restore_of' in kwargs:
-            lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
+            lunr_volumes = lunr_except_handler(lunr_client.volumes.list(**kwargs))
             cinder_volumes_list = []
             if len(lunr_volumes) > 0:
                 for volume in lunr_volumes:
@@ -302,7 +302,7 @@ class RaxAdminController(wsgi.Controller):
         tenant_id = 'admin'
         node_list = []
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_nodes_tmp = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
+        lunr_nodes_tmp = lunr_except_handler(lunr_client.nodes.list(**kwargs))
         if len(lunr_nodes_tmp) > 0:
             for node in lunr_nodes_tmp:
                 if 'status' in node.keys() and node['status'] != 'ACTIVE':
@@ -327,7 +327,7 @@ class RaxAdminController(wsgi.Controller):
         kwargs = SafeDict(body).get('list-lunr-volumes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_volumes_data = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
+        lunr_volumes_data = lunr_except_handler(lunr_client.volumes.list(**kwargs))
         lunr_volumes = {"count": len(lunr_volumes_data), "volumes": lunr_volumes_data}
         return lunr_volumes
 
@@ -371,9 +371,13 @@ class Rax_admin(extensions.ExtensionDescriptor):
         return [extension]
 
 
-def lunr_except_handler(client_call, **kwargs):
+def lunr_except_handler(client_call):
     try:
-        call_data = client_call(**kwargs)
+        call_data = client_call
+        if call_data:
+            return call_data
+        else:
+            return []
         call_data_code = call_data.get_code()
         if isinstance(call_data, dict):
             if isinstance(call_data_code, int):
