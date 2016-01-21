@@ -184,8 +184,7 @@ class RaxAdminController(wsgi.Controller):
         # Get Lunr node id information for direct storage node query
         lunr_nodes = lunr_except_handler(lunr_client.nodes.get(lunr_volumes['node_id']))
         volume.update(dict(lunr_volumes=lunr_volumes))
-        if lunr_exports['code'] == 200:
-            volume.update(dict(lunr_exports=[lunr_exports]))
+        volume.update(dict(lunr_exports=[lunr_exports]))
         volume.update(dict(lunr_nodes=lunr_nodes))
         # Get volume data specific to the storage node resource (direct from storage node)
         url = 'http://' + lunr_nodes['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
@@ -195,8 +194,7 @@ class RaxAdminController(wsgi.Controller):
         storage_backups = lunr_except_handler(storage_client.backups.list(volume_id))
         # Add storage node response data to volume dictionary
         volume.update(dict(storage_volumes=storage_volumes))
-        if storage_exports['code'] == 200:
-            volume.update(dict(storage_exports=[storage_exports]))
+        volume.update(dict(storage_exports=[storage_exports]))
         volume.update(dict(storage_backups=[storage_backups]))
         # Now that storage_backup list has been identified
         # Lunr can be queried specifically for each backup
