@@ -373,22 +373,21 @@ def lunr_except_handler(client_call):
     try:
         call_data = client_call
         if call_data:
+            call_data_code = call_data.get_code()
+            if isinstance(call_data, dict):
+                if isinstance(call_data_code, int):
+                    call_data.update({'code': call_data_code})
+                elif isinstance(call_data_code, dict):
+                    call_data.update(call_data_code)
+            elif isinstance(call_data, list) and len(call_data) > 0:
+                for item in call_data:
+                    item.update({'code': call_data_code})
+            elif isinstance(call_data, list) and len(call_data) == 0:
+                call_data.append({'code': call_data_code})
             return call_data
         else:
             return []
-        call_data_code = call_data.get_code()
-        if isinstance(call_data, dict):
-            if isinstance(call_data_code, int):
-                call_data.update({'code': call_data_code})
-            elif isinstance(call_data_code, dict):
-                call_data.update(call_data_code)
-        elif isinstance(call_data, list) and len(call_data) > 0:
-            for item in call_data:
-                item.update({'code': call_data_code})
-        elif isinstance(call_data, list) and len(call_data) == 0:
-            call_data.append({'code': call_data_code})
-        return call_data
-    except lunrclient.client.LunrError as e:
+    except (lunrclient.client.LunrError, lunrclient.client.LunrHttpError) as e:
         if isinstance(e.code, int):
             return {'code': e.code}
         elif isinstance(e.code, dict):
