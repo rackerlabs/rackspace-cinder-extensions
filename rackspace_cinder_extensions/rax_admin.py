@@ -187,7 +187,7 @@ class RaxAdminController(wsgi.Controller):
         volume.update(dict(lunr_exports=[lunr_exports]))
         volume.update(dict(lunr_nodes=lunr_nodes))
         # Get volume data specific to the storage node resource (direct from storage node)
-        url = 'http://' + lunr_nodes['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
+        url = 'http://' + lunr_nodes['cinder_host'] + ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
         storage_volumes = lunr_except_handler(storage_client.volumes.get(volume_id))
         storage_exports = lunr_except_handler(storage_client.exports.get(volume_id))
