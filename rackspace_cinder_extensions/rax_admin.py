@@ -16,6 +16,7 @@ except ImportError:
     from oslo.config import cfg
 from cinder.openstack.common import log as logging
 from cinder.db.sqlalchemy.api import model_query
+from cinder.db.sqlalchemy.api import backup_get
 from cinder.db.sqlalchemy.api import volume_get
 from cinder.db.sqlalchemy.api import volume_get_all
 from cinder.db.sqlalchemy.api import volume_get_all_by_host
@@ -25,6 +26,7 @@ from cinder.api.openstack import wsgi
 from cinder.api import extensions
 from cinder.quota import QUOTAS
 from cinder.volume.driver import VolumeDriver
+from cinder import exception
 from sqlalchemy import and_
 import lunrclient
 from lunrclient import client
@@ -46,6 +48,7 @@ authorize_list_nodes = extensions.extension_authorizer('rax-admin', 'list-nodes'
 authorize_list_nodes_out_rotation = extensions.extension_authorizer('rax-admin', 'list-nodes-out-rotation')
 authorize_list_volumes = extensions.extension_authorizer('rax-admin', 'list-volumes')
 authorize_list_lunr_volumes = extensions.extension_authorizer('rax-admin', 'list-lunr-volumes')
+authorize_get_backup = extensions.extension_authorizer('rax-admin', 'get-backup')
 authorize_get_node = extensions.extension_authorizer('rax-admin', 'get-node')
 authorize_get_volume = extensions.extension_authorizer('rax-admin', 'get-volume')
 authorize_status_volumes_all = extensions.extension_authorizer('rax-admin', 'status-volumes-all')
@@ -153,8 +156,30 @@ class RaxAdminController(wsgi.Controller):
         node_id = str(SafeDict(body).get('get-node', {}).get('id'))
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        node = lunr_except_handler(lambda: lunr_client.nodes.get(node_id))
-        return dict(node=node)
+        node = lunr_except_handler(lambda: lunr_client.nodes.get(node_id), resource='nodes')
+        return node
+
+    @wsgi.action('get-backup')
+    def _get_backup(self, req, body):
+        """
+
+        :param req:
+        :param body: python-cinderclient request's body
+                    {"get-backup": {"id": "<backup_id>"}}
+        :return: {"backups": {<backup data>}
+        """
+        cinder_context = req.environ['cinder.context']
+        authorize_get_backup(cinder_context)
+        id = str(SafeDict(body).get('get-backup', {}).get('id'))
+        backup_id = id
+        backups = {}
+        tenant_id = 'admin'
+        lunr_client = lunrclient.client.LunrClient(tenant_id)
+        lunr_backups = lunr_except_handler(lambda: lunr_client.backups.get(id), resource='backups')
+        backups.update(lunr_backups=lunr_backups)
+        cinder_backups = cinder_except_handler(lambda: backup_get(cinder_context, backup_id), data_name='backups')
+        backups.update(cinder_backups=cinder_backups)
+        return backups
 
     @wsgi.action('get-volume')
     def _get_volume(self, req, body):
@@ -178,33 +203,35 @@ class RaxAdminController(wsgi.Controller):
         kwargs = {"volume_id": volume_id}
         volume = {}
         tenant_id = 'admin'
+        volume_resource = 'volumes'
         # Get Lunr specific data for volume
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.get(volume_id))
-        if 'data' not in lunr_volumes:
+        lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.get(volume_id), resource=volume_resource)
+        if 'volumes' not in lunr_volumes:
             volume.update(dict(lunr_volumes=lunr_volumes))
             volume.update({"cinder_volumes": volume_get(cinder_context, volume_id)})
             return dict(volume=volume)
-        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes['data']['node_id']))
-        lunr_exports = lunr_except_handler(lambda: lunr_client.exports.get(volume_id))
-        lunr_backups = lunr_except_handler(lambda: lunr_client.backups.list(**kwargs))
+        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes[volume_resource]['node_id']),
+                                         resource='nodes')
+        lunr_exports = lunr_except_handler(lambda: lunr_client.exports.get(volume_id), resource='exports')
+        lunr_backups = lunr_except_handler(lambda: lunr_client.backups.list(**kwargs), resource='backups')
         # Get Lunr node id information for direct storage node query
         volume.update(dict(lunr_volumes=lunr_volumes))
         volume.update(dict(lunr_exports=lunr_exports))
         volume.update(dict(lunr_nodes=lunr_nodes))
         volume.update(dict(lunr_backups=lunr_backups))
         # Get volume data specific to the storage node resource (direct from storage node)
-        url = 'http://' + lunr_nodes['data']['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
+        url = 'http://' + lunr_nodes['nodes']['cinder_host'] + ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
-        storage_volumes = lunr_except_handler(lambda: storage_client.volumes.get(volume_id))
-        storage_exports = lunr_except_handler(lambda: storage_client.exports.get(volume_id))
-        storage_backups = lunr_except_handler(lambda: storage_client.backups.list(volume_id))
+        storage_volumes = lunr_except_handler(lambda: storage_client.volumes.get(volume_id), resource='volumes')
+        storage_exports = lunr_except_handler(lambda: storage_client.exports.get(volume_id), resource='exports')
+        storage_backups = lunr_except_handler(lambda: storage_client.backups.list(volume_id), resource='backups')
         # Add storage node response data to volume dictionary
         volume.update(dict(storage_volumes=storage_volumes))
         volume.update(dict(storage_exports=storage_exports))
         volume.update(dict(storage_backups=storage_backups))
-        volume.update({"cinder_volumes": volume_get(cinder_context, volume_id)})
-        return dict(volume=volume)
+        volume.update(cinder_volumes=cinder_except_handler(volume_get(cinder_context, volume_id), data_name='volumes'))
+        return volume
 
     @wsgi.action('list-nodes')
     def _list_nodes(self, req, body):
@@ -222,7 +249,7 @@ class RaxAdminController(wsgi.Controller):
         kwargs = SafeDict(body).get('list-nodes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
+        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs), resource='nodes')
         return lunr_nodes
 
     @wsgi.action('list-volumes')
@@ -246,7 +273,7 @@ class RaxAdminController(wsgi.Controller):
         if 'node_id' in kwargs:
             lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
             hostname = lunr_node['cinder_host']
-            cinder_volumes = cinder_list_handler(volume_get_all_by_host(cinder_context, host=hostname), data_name)
+            cinder_volumes = cinder_except_handler(volume_get_all_by_host(cinder_context, host=hostname), data_name)
             return cinder_volumes
         if 'restore_of' in kwargs:
             lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
@@ -261,18 +288,18 @@ class RaxAdminController(wsgi.Controller):
                 cinder_volumes = {"count": 0, "volumes": cinder_volumes_list}
             return cinder_volumes
         elif 'id' in kwargs:
-            cinder_volumes = cinder_list_handler(volume_get(cinder_context, volume_id=kwargs['id']), data_name)
+            cinder_volumes = cinder_except_handler(volume_get(cinder_context, volume_id=kwargs['id']), data_name)
             return cinder_volumes
         elif 'account_id' in kwargs:
             project_id = kwargs['account_id']
             kwargs.clear()
             kwargs.update({'project_id': project_id})
-            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
+            cinder_volumes = cinder_except_handler(volume_get_all(cinder_context, marker=None, limit=None,
                                                                 sort_key='project_id',
                                                                 sort_dir='asc', filters=kwargs), data_name)
             return cinder_volumes
         else:
-            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
+            cinder_volumes = cinder_except_handler(volume_get_all(cinder_context, marker=None, limit=None,
                                                                 sort_key='project_id', sort_dir='asc',
                                                                 filters=kwargs), data_name)
             return cinder_volumes
@@ -292,13 +319,13 @@ class RaxAdminController(wsgi.Controller):
         tenant_id = 'admin'
         node_list = []
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_nodes_tmp = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
-        if len(lunr_nodes_tmp) > 0:
-            for node in lunr_nodes_tmp:
+        lunr_nodes_tmp = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs), resource='nodes')
+        if 'nodes' in lunr_nodes_tmp and len(lunr_nodes_tmp['nodes']) > 0:
+            for node in lunr_nodes_tmp['nodes']:
                 if 'status' in node.keys() and node['status'] != 'ACTIVE':
                     node_list.append(node)
         else:
-            nodes = {"count": len(lunr_nodes_tmp), "nodes": lunr_nodes_tmp}
+            nodes = {"count": len(lunr_nodes_tmp['nodes']), "nodes": lunr_nodes_tmp['nodes']}
             return nodes
         nodes = {"count": len(node_list), "nodes": node_list}
         return nodes
@@ -317,8 +344,7 @@ class RaxAdminController(wsgi.Controller):
         kwargs = SafeDict(body).get('list-lunr-volumes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
-        lunr_volumes_data = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
-        lunr_volumes = {"count": len(lunr_volumes_data), "volumes": lunr_volumes_data}
+        lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs), resource='volumes')
         return lunr_volumes
 
     @wsgi.action('status-volumes-all')
@@ -389,17 +415,23 @@ def lunr_except_handler(client_call, resource='data', **kwargs):
         return e.code
 
 
-def cinder_list_handler(client_call, data_name):
-    cinder_return_data = client_call
-    cinder_return_data_list = []
-    if isinstance(cinder_return_data, list):
-        cinder_data = {"count": len(cinder_return_data), data_name: cinder_return_data}
-    elif dict(cinder_return_data):
-        cinder_return_data_list.append(cinder_return_data)
-        cinder_data = {"count": len(cinder_return_data_list), data_name: cinder_return_data_list}
-    else:
-        cinder_return_data_list.append(cinder_return_data)
-        cinder_data = {"count": 0, data_name: cinder_return_data_list}
-    return cinder_data
+def cinder_except_handler(client_call, data_name='data'):
+    try:
+        cinder_return_data = client_call()
+        cinder_return_data_list = []
+        if isinstance(cinder_return_data, list):
+            cinder_data = {"count": len(cinder_return_data), data_name: cinder_return_data}
+        elif isinstance(cinder_return_data, dict):
+            cinder_return_data_list.append(cinder_return_data)
+            cinder_data = {"count": len(cinder_return_data_list), data_name: cinder_return_data_list}
+        else:
+            cinder_return_data_list.append(cinder_return_data)
+            cinder_data = {"count": 0, data_name: cinder_return_data_list}
+        return cinder_data
+    except exception as e:
+        code = e.code
+        cinder_data = {"code": code, "count": 0, data_name: e.strerror}
+        return cinder_data
+
 
 
