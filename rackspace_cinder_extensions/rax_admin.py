@@ -175,42 +175,34 @@ class RaxAdminController(wsgi.Controller):
         cinder_context = req.environ['cinder.context']
         authorize_get_volume(cinder_context)
         volume_id = str(SafeDict(body).get('get-volume', {}).get('id'))
+        kwargs = {"volume_id": volume_id}
         volume = {}
-        lunr_backups = []
         tenant_id = 'admin'
         # Get Lunr specific data for volume
         lunr_client = lunrclient.client.LunrClient(tenant_id)
         lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.get(volume_id))
+        if 'data' not in lunr_volumes:
+            volume.update(dict(lunr_volumes=lunr_volumes))
+            volume.update({"cinder_volumes": volume_get(cinder_context, volume_id)})
+            return dict(volume=volume)
+        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes['data']['node_id']))
         lunr_exports = lunr_except_handler(lambda: lunr_client.exports.get(volume_id))
+        lunr_backups = lunr_except_handler(lambda: lunr_client.backups.list(**kwargs))
         # Get Lunr node id information for direct storage node query
-        lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.get(lunr_volumes['node_id']))
         volume.update(dict(lunr_volumes=lunr_volumes))
-        volume.update(dict(lunr_exports=[lunr_exports]))
+        volume.update(dict(lunr_exports=lunr_exports))
         volume.update(dict(lunr_nodes=lunr_nodes))
+        volume.update(dict(lunr_backups=lunr_backups))
         # Get volume data specific to the storage node resource (direct from storage node)
-        url = 'http://' + lunr_nodes['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
+        url = 'http://' + lunr_nodes['data']['hostname'] + ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
         storage_volumes = lunr_except_handler(lambda: storage_client.volumes.get(volume_id))
         storage_exports = lunr_except_handler(lambda: storage_client.exports.get(volume_id))
         storage_backups = lunr_except_handler(lambda: storage_client.backups.list(volume_id))
         # Add storage node response data to volume dictionary
         volume.update(dict(storage_volumes=storage_volumes))
-        volume.update(dict(storage_exports=[storage_exports]))
-        volume.update(dict(storage_backups=[storage_backups]))
-        # Now that storage_backup list has been identified
-        # Lunr can be queried specifically for each backup
-        # *** Should actually use lunr backups and query by kwargs
-        # that contain account_id and volume id
-        if len(storage_backups) > 1:
-            for k, v in storage_backups.iteritems():
-                if k != 'code':
-                    lunr_backups.append(lunr_except_handler(lambda: lunr_client.backups.get(k)))
-            volume.update(dict(lunr_backups=lunr_backups))
-        else:
-            # storage_backup only had a 404 error code
-            # No backups to iterate over.
-            volume.update(dict(lunr_backups=[]))
-        # Now add cinder volume data to the volume dictionary
+        volume.update(dict(storage_exports=storage_exports))
+        volume.update(dict(storage_backups=storage_backups))
         volume.update({"cinder_volumes": volume_get(cinder_context, volume_id)})
         return dict(volume=volume)
 
@@ -231,8 +223,7 @@ class RaxAdminController(wsgi.Controller):
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
         lunr_nodes = lunr_except_handler(lambda: lunr_client.nodes.list(**kwargs))
-        nodes = {"count": len(lunr_nodes), "nodes": lunr_nodes}
-        return nodes
+        return lunr_nodes
 
     @wsgi.action('list-volumes')
     def _list_volumes(self, req, body):
@@ -370,21 +361,26 @@ class Rax_admin(extensions.ExtensionDescriptor):
         return [extension]
 
 
-def lunr_except_handler(client_call, **kwargs):
+def lunr_except_handler(client_call, resource='data', **kwargs):
     try:
-        call_data = client_call(**kwargs)
+        return_data = {}
+        call_data = client_call()
         call_data_code = call_data.get_code()
         if isinstance(call_data, dict):
             if isinstance(call_data_code, int):
-                call_data.update({'code': call_data_code})
+                return_data.update({'code': call_data_code, resource: call_data})
             elif isinstance(call_data_code, dict):
-                call_data.update(call_data_code)
+                return_data.update(call_data_code)
+                return_data.update({resource: call_data})
         elif isinstance(call_data, list) and len(call_data) > 0:
-            for item in call_data:
-                item.update({'code': call_data_code})
+            return_data.update({'code': call_data_code})
+            return_data.update({'count': len(call_data)})
+            return_data.update({resource: call_data})
         elif isinstance(call_data, list) and len(call_data) == 0:
-            call_data.append({'code': call_data_code})
-        return call_data
+            return_data.update({'code': call_data_code})
+            return_data.update({'count': len(call_data)})
+            return_data.update({resource: call_data})
+        return return_data
     except (lunrclient.LunrError, lunrclient.LunrHttpError) as e:
         if isinstance(e.code, int):
             return {'code': e.code}
