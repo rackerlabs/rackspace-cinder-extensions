@@ -410,9 +410,9 @@ def lunr_except_handler(client_call, resource='data', **kwargs):
         return return_data
     except (lunrclient.LunrError, lunrclient.LunrHttpError) as e:
         if isinstance(e.code, int):
-            return {'code': e.code}
+            return {'code': e.code, 'error': str(e)}
         elif isinstance(e.code, dict):
-            return {'code': e.code}
+            return {'code': e.code, 'error': str(e)}
         return e.code
 
 
@@ -429,9 +429,9 @@ def cinder_except_handler(client_call, data_name='data'):
             cinder_return_data_list.append(cinder_return_data)
             cinder_data = {"count": 0, data_name: cinder_return_data_list}
         return cinder_data
-    except exception.BackupNotFound as e:
+    except (exception.BackupNotFound, exception.VolumeNotFound) as e:
         code = e.code
-        cinder_data = {"code": code, "count": 0, data_name: e.strerror}
+        cinder_data = {"code": code, "count": 0, data_name: "", "message": str(e)}
         return cinder_data
 
 
