@@ -33,6 +33,7 @@ from lunrclient import client
 from lunrclient.client import LunrClient
 from lunrclient import LunrHttpError, LunrError
 import requests
+import sys
 
 lunr_opts = [
     cfg.StrOpt('lunr_api_version', default='v1.0'),
@@ -428,7 +429,7 @@ def cinder_except_handler(client_call, data_name='data'):
             cinder_return_data_list.append(cinder_return_data)
             cinder_data = {"count": 0, data_name: cinder_return_data_list}
         return cinder_data
-    except exception as e:
+    except exception.BackupNotFound as e:
         code = e.code
         cinder_data = {"code": code, "count": 0, data_name: e.strerror}
         return cinder_data
