@@ -27,7 +27,7 @@ setup(
     license='Apache License, Version 2.0',
     packages=find_packages(exclude=['test']),
     url='https://github.com/rackerlabs/rackspace_cinder_extensions',
-    install_requires=[],
+    install_requires=['python-lunrclient>=1.1.0'],
     data_files=[
         ('share/doc/python-rackspace-cinder-extensions',
          ['CHANGES', 'CONTRIBUTORS', 'LICENSE', 'README.md']),
