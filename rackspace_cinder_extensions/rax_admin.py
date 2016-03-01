@@ -480,5 +480,3 @@ def cinder_except_handler(client_call, data_name='data'):
                        data_name: "", "error": str(e)}
         return cinder_data
 
-
-
