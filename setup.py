@@ -18,7 +18,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='rackspace_cinder_extensions',
-    version='0.2',
+    version='0.3',
     author='Cory Stone',
     author_email='cory.stone@gmail.com',
     maintainer='Cory Wright',
