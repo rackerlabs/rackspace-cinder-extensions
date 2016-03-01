@@ -202,11 +202,15 @@ class RaxAdminController(wsgi.Controller):
         :param body: python-cinderclinet request's body
                    {"get-volume": {"id": "<volume_id>"}}
         :return: {"volume": {"storage_volumes": {<storage_volumes vol 1>},
-                             "storage_backups": [{<storage_backups backup 1>}, {backup 2}, ...],
-                             "storage_exports": [{<storage_exports export 1>}, {export 2 ?}, ...],
+                             "storage_backups": [{<storage_backups backup 1>},
+                                                {backup 2}, ...],
+                             "storage_exports": [{<storage_exports export 1>},
+                                                {export 2 ?}, ...],
                              "lunr_nodes": {<lunr_nodes data>},
-                             "lunr_backups": [{<lunr_backups data backup 1>}, {backup 2}, ...],
-                             "lunr_exports": [{<lunr_exports data export 1>}, {export 2 ?}, ...],
+                             "lunr_backups": [{<lunr_backups data backup 1>},
+                                             {backup 2}, ...],
+                             "lunr_exports": [{<lunr_exports data export 1>},
+                                             {export 2 ?}, ...],
                              "lunr_volumes": {<lunr_volumes data>},
                              "cinder_volumes": {<cinder volume data>} }
         """
@@ -240,7 +244,8 @@ class RaxAdminController(wsgi.Controller):
         volume.update(dict(lunr_exports=lunr_exports))
         volume.update(dict(lunr_nodes=lunr_nodes))
         volume.update(dict(lunr_backups=lunr_backups))
-        # Get volume data specific to the storage node resource (direct from storage node)
+        # Get volume data specific to the storage node resource
+        # (direct from storage node)
         url = 'http://' + lunr_nodes['nodes']['cinder_host'] + \
               ':8080/' + CONF.lunr_api_version + '/admin'
         storage_client = lunrclient.client.StorageClient(url)
@@ -460,21 +465,18 @@ def lunr_except_handler(client_call, resource='data', **kwargs):
 def cinder_except_handler(client_call, data_name='data'):
     try:
         cinder_return_data = client_call()
-        cinder_return_data_list = []
+        #cinder_return_data_list = []
         if isinstance(cinder_return_data, list):
             cinder_data = {"count": len(cinder_return_data),
                            data_name: cinder_return_data}
         elif isinstance(cinder_return_data, dict):
-            cinder_return_data_list.append(cinder_return_data)
-            cinder_data = {"count": len(cinder_return_data_list),
-                           data_name: cinder_return_data_list}
+            cinder_data = {data_name: cinder_return_data}
         else:
-            cinder_return_data_list.append(cinder_return_data)
-            cinder_data = {"count": 0, data_name: cinder_return_data_list}
+            cinder_data = {data_name: cinder_return_data}
         return cinder_data
     except (exception.BackupNotFound, exception.VolumeNotFound) as e:
         code = e.code
-        cinder_data = {"code": code, "count": 0,
+        cinder_data = {"code": code,
                        data_name: "", "error": str(e)}
         return cinder_data
 
