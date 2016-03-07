@@ -1,6 +1,6 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
-# Copyright 2013 Rackspace, Inc.
+# Copyright 2013-2016 Rackspace US, Inc.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -16,7 +16,7 @@
 
 from setuptools import setup, find_packages
 
-version = '0.3'
+version = '0.4'
 
 setup(
     name='rackspace_cinder_extensions',

@@ -11,16 +11,16 @@ First you'll need to install some prerequisite packages:
     apt-get install python-stdeb fakeroot python-all
 
 To build for a specific release create a `stdeb.cfg` file and add the following,
-replacing `precise` with your release codename:
+replacing `trusty` with your release codename:
 
     [DEFAULT]
-    Suite: precise
+    Suite: trusty
 
 Now build the `.deb` file:
 
     python setup.py --command-packages=stdeb.command bdist_deb
 
-### Load all Extensions in the rackspace Extension package
+### Load all extensions in the Rackspace extension package
 
 Add this line to `cinder.conf`:
 
@@ -37,4 +37,3 @@ Add this line to `cinder.conf`:
 Add this line to `cinder.conf`:
 
     osapi_volume_extension=rackspace_cinder_extensions.rax_admin.Rax_admin
-
