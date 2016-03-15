@@ -12,7 +12,10 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-from oslo.config import cfg
+try:
+    from oslo_config import cfg
+except ImportError:
+    from oslo.config import cfg
 from cinder.api import extensions
 from cinder.openstack.common import log as logging
 import os
