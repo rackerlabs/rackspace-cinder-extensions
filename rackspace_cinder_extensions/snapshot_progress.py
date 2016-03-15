@@ -19,7 +19,10 @@ from cinder.api import extensions
 from cinder.api.openstack import wsgi
 from cinder import db
 from cinder import exception
-from cinder.openstack.common import log as logging
+try:
+    from oslo_log import log as logging
+except ImportError:
+    from cinder.openstack.common import log as logging
 
 
 LOG = logging.getLogger(__name__)
