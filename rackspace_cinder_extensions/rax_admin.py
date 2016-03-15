@@ -16,7 +16,11 @@ try:
     from oslo_config import cfg
 except ImportError:
     from oslo.config import cfg
-from cinder.openstack.common import log as logging
+try:
+    from oslo_log import log as logging
+except ImportError:
+    from cinder.openstack.common import log as logging
+
 from cinder.db.sqlalchemy.api import model_query
 from cinder.db.sqlalchemy.api import volume_get
 from cinder.db.sqlalchemy.api import volume_get_all

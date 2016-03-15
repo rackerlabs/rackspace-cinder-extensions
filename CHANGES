@@ -1,5 +1,9 @@
 Rackspace Cinder Extensions
 
+0.5 - Liberty release
+
+ * Updated extensions to work with liberty release
+
 0.1 - Initial release
 
  * Snapshot_progress extension
