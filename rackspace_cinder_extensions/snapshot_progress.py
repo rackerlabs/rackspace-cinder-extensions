@@ -45,7 +45,7 @@ class SnapshotProgressController(wsgi.Controller):
         context = req.environ['cinder.context']
         authorize(context)
         progress = body['os-update_progress']
-        msg = _("Updating snapshot '%(id)s' with '%(progress)r'")
+        msg = "Updating snapshot '%(id)s' with '%(progress)r'"
         LOG.debug(msg, {'id': id, 'progress': progress})
         try:
             db.snapshot_update(context, id, {'progress': progress})
