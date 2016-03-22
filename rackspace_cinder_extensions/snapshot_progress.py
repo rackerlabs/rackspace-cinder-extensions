@@ -19,6 +19,8 @@ from cinder.api import extensions
 from cinder.api.openstack import wsgi
 from cinder import db
 from cinder import exception
+from cinder.i18n import _
+
 try:
     from oslo_log import log as logging
 except ImportError:
