@@ -60,8 +60,6 @@ authorize_get_node = extensions.extension_authorizer(
     'rax-admin', 'get-node')
 authorize_get_volume = extensions.extension_authorizer(
     'rax-admin', 'get-volume')
-#authorize_status_volumes_all = extensions.extension_authorizer(
-#    'rax-admin', 'status-volumes-all')
 
 
 class SafeDict(dict):
@@ -393,32 +391,6 @@ class RaxAdminController(wsgi.Controller):
             lambda: lunr_client.volumes.list(**kwargs), resource='volumes')
         return lunr_volumes
 
-    """
-    @wsgi.action('status-volumes-all')
-    def _status_volumes_all(self, req, body):
-        """
-        Not Completed. Currently returns get-volume data for every volume
-        in environment
-        :param req:
-        :param body:
-        :return:
-        """
-        cinder_context = req.environ['cinder.context']
-        authorize_status_volumes_all(cinder_context)
-        tenant_id = 'admin'
-        kwargs = SafeDict(body).get('status-volumes-all', {})
-        list_lunr_volumes_body = {"list-volumes": None}
-        lunr_volumes = self._list_lunr_volumes(req, body=list_lunr_volumes_body)
-        volumes = []
-        for volume in lunr_volumes['lunr_volumes']:
-            get_volume_body = {"get-volume": {"id": volume['id']}}
-            volume_data = self._get_volume(req, body=get_volume_body)['volume']
-            volumes.append(volume_data)
-            del volume_data
-        # Now compare Cinder/storage data with Lunr data
-        # Not completed yet. Needs Cinder sqlalchemy queries
-        return dict(compare_volumes=volumes)
-    """
 
 class Rax_admin(extensions.ExtensionDescriptor):
     """Enable Rax Admin Extension"""
