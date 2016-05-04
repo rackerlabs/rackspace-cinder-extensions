@@ -60,8 +60,8 @@ authorize_get_node = extensions.extension_authorizer(
     'rax-admin', 'get-node')
 authorize_get_volume = extensions.extension_authorizer(
     'rax-admin', 'get-volume')
-authorize_status_volumes_all = extensions.extension_authorizer(
-    'rax-admin', 'status-volumes-all')
+#authorize_status_volumes_all = extensions.extension_authorizer(
+#    'rax-admin', 'status-volumes-all')
 
 
 class SafeDict(dict):
@@ -393,6 +393,7 @@ class RaxAdminController(wsgi.Controller):
             lambda: lunr_client.volumes.list(**kwargs), resource='volumes')
         return lunr_volumes
 
+    """
     @wsgi.action('status-volumes-all')
     def _status_volumes_all(self, req, body):
         """
@@ -417,6 +418,7 @@ class RaxAdminController(wsgi.Controller):
         # Now compare Cinder/storage data with Lunr data
         # Not completed yet. Needs Cinder sqlalchemy queries
         return dict(compare_volumes=volumes)
+    """
 
 class Rax_admin(extensions.ExtensionDescriptor):
     """Enable Rax Admin Extension"""
@@ -479,4 +481,3 @@ def cinder_except_handler(client_call, data_name='data'):
         cinder_data = {"code": code,
                        data_name: "", "error": str(e)}
         return cinder_data
-
