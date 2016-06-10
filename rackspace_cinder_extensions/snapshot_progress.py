@@ -51,7 +51,7 @@ class SnapshotProgressController(wsgi.Controller):
         LOG.debug(msg, {'id': id, 'progress': progress})
         try:
             db.snapshot_update(context, id, {'progress': progress})
-        except exception.NotFound, e:
+        except exception.NotFound as e:
             raise exc.HTTPNotFound(e)
         return webob.Response(status_int=202)
 
