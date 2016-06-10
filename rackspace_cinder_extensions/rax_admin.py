@@ -21,6 +21,7 @@ try:
 except ImportError:
     from cinder.openstack.common import log as logging
 
+import cinder.context
 from cinder.db.sqlalchemy.api import model_query
 from cinder.db.sqlalchemy.api import volume_get
 from cinder.db.sqlalchemy.api import volume_get_all
@@ -29,6 +30,7 @@ from cinder.db.sqlalchemy.api import volume_get_all_by_project
 from cinder.db.sqlalchemy import models
 from cinder.api.openstack import wsgi
 from cinder.api import extensions
+from cinder.i18n import _
 from cinder.quota import QUOTAS
 from cinder.volume.driver import VolumeDriver
 from sqlalchemy import and_
@@ -36,6 +38,8 @@ import lunrclient
 from lunrclient import client
 from lunrclient.client import LunrClient
 import requests
+from webob import exc
+
 
 lunr_opts = [
     cfg.StrOpt('lunr_api_version', default='v1.0'),
@@ -244,7 +248,7 @@ class RaxAdminController(wsgi.Controller):
     @wsgi.action('list-volumes')
     def _list_volumes(self, req, body):
         """
-        Returns Cinder volume data for queries with Lunr kwargs filters
+        Returns Cinder volume lists for specific query params
         :param req: python-cinderclient request
         :param body: python-cinderclient request's body
                     {"list-volumes": {"node_id": "<node_id>"}}
@@ -255,43 +259,45 @@ class RaxAdminController(wsgi.Controller):
         """
         cinder_context = req.environ['cinder.context']
         authorize_list_volumes(cinder_context)
+        admin_context = cinder.context.get_admin_context()
         kwargs = SafeDict(body).get('list-volumes', {})
         tenant_id = 'admin'
         lunr_client = lunrclient.client.LunrClient(tenant_id)
         data_name = "volumes"
         if 'node_id' in kwargs:
-            lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(**kwargs))
+            lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(node_id=kwargs['node_id']))
             hostname = lunr_node['cinder_host']
-            cinder_volumes = cinder_list_handler(volume_get_all_by_host(cinder_context, host=hostname), data_name)
+            cinder_volumes = cinder_list_handler(volume_get_all_by_host(admin_context, host=hostname), data_name)
             return cinder_volumes
         if 'restore_of' in kwargs:
-            lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(**kwargs))
+            lunr_volumes = lunr_except_handler(lambda: lunr_client.volumes.list(restore_of=kwargs['restore_of']))
             cinder_volumes_list = []
             if len(lunr_volumes) > 0:
                 for volume in lunr_volumes:
                     if 'id' in volume:
-                        cinder_volumes_list.append(volume_get(cinder_context, volume_id=volume['id']))
+                        cinder_volumes_list.append(volume_get(admin_context, volume_id=volume['id']))
             if isinstance(cinder_volumes_list, list):
                 cinder_volumes = {"count": len(cinder_volumes_list), data_name: cinder_volumes_list}
             else:
                 cinder_volumes = {"count": 0, "volumes": cinder_volumes_list}
             return cinder_volumes
         elif 'id' in kwargs:
-            cinder_volumes = cinder_list_handler(volume_get(cinder_context, volume_id=kwargs['id']), data_name)
+            cinder_volumes = cinder_list_handler(volume_get(admin_context, volume_id=kwargs['id']), data_name)
             return cinder_volumes
         elif 'account_id' in kwargs:
-            project_id = kwargs['account_id']
-            kwargs.clear()
-            kwargs.update({'project_id': project_id})
-            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
-                                                                sort_key='project_id',
-                                                                sort_dir='asc', filters=kwargs), data_name)
+            filters = {'project_id': kwargs['account_id']}
+            cinder_volumes = cinder_list_handler(volume_get_all(admin_context, marker=None, limit=None,
+                                                                sort_keys=['project_id'],
+                                                                sort_dirs=['asc'], filters=filters), data_name)
             return cinder_volumes
-        else:
-            cinder_volumes = cinder_list_handler(volume_get_all(cinder_context, marker=None, limit=None,
-                                                                sort_key='project_id', sort_dir='asc',
-                                                                filters=kwargs), data_name)
+        elif 'host' in kwargs:
+            filters = {'host': kwargs['host']}
+            cinder_volumes = cinder_list_handler(volume_get_all(admin_context, marker=None, limit=None,
+                                                                sort_keys=['project_id'], sort_dirs=['asc'],
+                                                                filters=filters), data_name)
             return cinder_volumes
+        raise exc.HTTPBadRequest(
+            explanation=_("Must specify node_id, restore_of, id, account_id, or host"))
 
     @wsgi.action('list-out-rotation-nodes')
     def _list_out_rotation_nodes(self, req, body):
