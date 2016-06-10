@@ -1,11 +1,11 @@
 #  Copyright 2013-2016 Rackspace US, Inc.
-#  
+#
 #  Licensed under the Apache License, Version 2.0 (the "License");
 #  you may not use this file except in compliance with the License.
 #  You may obtain a copy of the License at
-#  
+#
 #  http://www.apache.org/licenses/LICENSE-2.0
-#  
+#
 #  Unless required by applicable law or agreed to in writing, software
 #  distributed under the License is distributed on an "AS IS" BASIS,
 #  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -14,22 +14,14 @@
 
 import unittest
 
-import shutil
-import tempfile
+from oslo_serialization import jsonutils
+
 import webob
 
-from cinder import tests
-from cinder import test
+from rackspace_cinder_extensions import test
 from cinder import context
 from cinder import db
-from cinder import exception
-from cinder import flags
-from cinder.openstack.common import jsonutils
-from cinder.tests.api import fakes
-from cinder.tests.api.v2 import stubs
-from cinder.volume import api as volume_api
-
-FLAGS = flags.FLAGS
+from cinder.tests.unit.api import fakes
 
 
 def app():
@@ -41,19 +33,6 @@ def app():
 
 
 class SnapshotProgressTestCase(test.TestCase):
-
-    def setUp(self):
-        self.tempdir = tempfile.mkdtemp()
-        super(SnapshotProgressTestCase, self).setUp()
-        self.flags(rpc_backend='cinder.openstack.common.rpc.impl_fake')
-        self.flags(lock_path=self.tempdir)
-        self.flags(osapi_volume_extension=['rackspace_cinder_extensions.snapshot_progress.Snapshot_progress'])
-        self.flags(policy_file='test_policy.json')
-        self.volume_api = volume_api.API()
-
-    def tearDown(self):
-        shutil.rmtree(self.tempdir)
-        super(SnapshotProgressTestCase, self).tearDown()
 
     def test_update_progress(self):
         ctx = context.RequestContext('admin', 'fake', True)
