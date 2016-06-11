@@ -12,6 +12,8 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+# flake8: noqa
+
 try:
     from oslo_config import cfg
 except ImportError:
@@ -418,5 +420,3 @@ def cinder_list_handler(client_call, data_name):
         cinder_return_data_list.append(cinder_return_data)
         cinder_data = {"count": 0, data_name: cinder_return_data_list}
     return cinder_data
-
-
