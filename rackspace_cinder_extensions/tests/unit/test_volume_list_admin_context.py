@@ -16,7 +16,8 @@ class VolumeListAdminContextTestCase(test.TestCase):
         ctx = context.RequestContext('admin', 'fake', False,
                                      roles=roles)
 
-        req = webob.Request.blank('/v2/fake/volumes/detail?host=fake&all_tenants=1')
+        req = webob.Request.blank('/v2/fake/volumes/detail'
+                                  '?host=fake&all_tenants=1')
         req.method = 'GET'
 
         res = req.get_response(fakes.wsgi_app(fake_auth_context=ctx))
@@ -31,9 +32,11 @@ class VolumeListAdminContextTestCase(test.TestCase):
         self.assertEqual(200, res.status_int)
 
         get_all.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
-                                        filters={'host': 'fake', 'all_tenants': 1},
+                                        filters={'host': 'fake',
+                                                 'all_tenants': 1},
                                         offset=mock.ANY,
-                                        sort_dirs=mock.ANY, sort_keys=mock.ANY,
+                                        sort_dirs=mock.ANY,
+                                        sort_keys=mock.ANY,
                                         viewable_admin_meta=mock.ANY)
 
     @mock.patch('cinder.volume.api.API.get_all')
@@ -46,5 +49,6 @@ class VolumeListAdminContextTestCase(test.TestCase):
         get_all.assert_called_once_with(mock.ANY, mock.ANY, mock.ANY,
                                         filters={},
                                         offset=mock.ANY,
-                                        sort_dirs=mock.ANY, sort_keys=mock.ANY,
+                                        sort_dirs=mock.ANY,
+                                        sort_keys=mock.ANY,
                                         viewable_admin_meta=mock.ANY)

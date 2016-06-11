@@ -11,6 +11,7 @@ class TestCase(test.TestCase):
             osapi_volume_extension=[
                 'rackspace_cinder_extensions.rax_extensions'])
 
+        policy = 'rackspace_cinder_extensions/tests/unit/policy.json'
         self.override_config('policy_file',
                              os.path.join(
                                  os.path.abspath(
@@ -19,5 +20,5 @@ class TestCase(test.TestCase):
                                          '..',
                                      )
                                  ),
-                                 'rackspace_cinder_extensions/tests/unit/policy.json'),
+                                 policy),
                              group='oslo_policy')
