@@ -12,8 +12,8 @@
 #  License for the specific language governing permissions and limitations
 #  under the License.
 
-import webob
 import mock
+import webob
 
 from cinder import context
 from cinder.tests.unit.api import fakes

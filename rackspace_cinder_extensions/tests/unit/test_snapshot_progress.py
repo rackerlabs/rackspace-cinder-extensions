@@ -16,10 +16,11 @@ from oslo_serialization import jsonutils
 
 import webob
 
-from rackspace_cinder_extensions import test
 from cinder import context
 from cinder import db
 from cinder.tests.unit.api import fakes
+
+from rackspace_cinder_extensions import test
 
 
 def app():
