@@ -48,7 +48,7 @@ class SnapshotProgressTestCase(test.TestCase):
         req.environ['cinder.context'] = ctx
         resp = req.get_response(app())
         # request is accepted
-        self.assertEquals(resp.status_int, 202)
+        self.assertEqual(resp.status_int, 202)
         snapshot = db.snapshot_get(ctx, snapshot['id'])
         # status changed to 'error'
-        self.assertEquals(snapshot['progress'], 'progress!')
+        self.assertEqual(snapshot['progress'], 'progress!')
