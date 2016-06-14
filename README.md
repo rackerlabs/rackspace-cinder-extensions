@@ -24,16 +24,11 @@ Now build the `.deb` file:
 
 Add this line to `cinder.conf`:
 
-    osapi_volume_extension = rackspace_cinder_extensions.rax_extensions
+    osapi_volume_extension = rackspace_cinder_extensions.api.contrib.standard_extensions
 
-### Load Extension: os-snapshot-progress
+### Load extensions by name:
 
-Add this line to `cinder.conf`:
+Add these lines to `cinder.conf`:
 
-    osapi_volume_extension=rackspace_cinder_extensions.snapshot_progress.Snapshot_progress
-
-### Load Extension: rax-admin
-
-Add this line to `cinder.conf`:
-
-    osapi_volume_extension=rackspace_cinder_extensions.rax_admin.Rax_admin
+    osapi_volume_extension = rackspace_cinder_extensions.api.contrib.select_extensions
+    rsapi_volume_ext_list = Volume_list_admin_context,Snapshot_progress

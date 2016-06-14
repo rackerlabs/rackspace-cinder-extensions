@@ -12,15 +12,23 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
+from oslo_config import cfg
 from oslo_log import log as logging
 
-from rackspace_cinder_extensions.api import contrib
+from cinder.api import extensions
+
+# import registers global options
+from rackspace_cinder_extensions.common import config  # noqa
 
 
+CONF = cfg.CONF
 LOG = logging.getLogger(__name__)
 
 
-def rax_extensions(ext_mgr):
-    LOG.warning('The rackspace_cinder_extensions.rax_extensions loader '
-                'is deprecated and will be removed in the v0.9 release.')
-    contrib.standard_extensions(ext_mgr)
+def standard_extensions(ext_mgr):
+    extensions.load_standard_extensions(ext_mgr, LOG, __path__, __package__)
+
+
+def select_extensions(ext_mgr):
+    extensions.load_standard_extensions(ext_mgr, LOG, __path__, __package__,
+                                        CONF.rsapi_volume_ext_list)
