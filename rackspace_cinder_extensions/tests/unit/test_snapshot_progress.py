@@ -12,8 +12,6 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 
-import unittest
-
 from oslo_serialization import jsonutils
 
 import webob
@@ -53,6 +51,3 @@ class SnapshotProgressTestCase(test.TestCase):
         snapshot = db.snapshot_get(ctx, snapshot['id'])
         # status changed to 'error'
         self.assertEquals(snapshot['progress'], 'progress!')
-
-if __name__ == "__main__":
-    unittest.main()

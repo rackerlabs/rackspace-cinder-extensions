@@ -1,0 +1,7 @@
+oslo.log>=1.8.0 # Apache-2.0
+oslo.config>=2.3.0 # Apache-2.0
+requests>=2.7.0
+SQLAlchemy>=0.7.8
+python-lunrclient>=1.1.2
+WebOb>=1.2.3
+#cinder>=7.0.1
