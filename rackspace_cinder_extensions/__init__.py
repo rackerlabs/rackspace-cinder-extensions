@@ -18,7 +18,7 @@ from oslo_log import log as logging
 from cinder.api import extensions
 
 # import registers global options
-from rackspace_cinder_extensions.common import config
+from rackspace_cinder_extensions.common import config  # noqa
 
 
 CONF = cfg.CONF
