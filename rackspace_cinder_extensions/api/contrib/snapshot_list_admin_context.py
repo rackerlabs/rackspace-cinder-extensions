@@ -40,12 +40,12 @@ class SnapshotListAdminContextController(wsgi.Controller):
 
 
 class Snapshot_list_admin_context(extensions.ExtensionDescriptor):
-    """Elevate volume list context to an admin context."""
+    """Elevate snapshot list context to an admin context."""
 
     name = "SnapshotListAdminContext"
     alias = "rs-snap-list-admin-context"
     namespace = ("http://docs.rackspace.com/volume/ext/"
-                 "volume_list_admin_context/api/v2")
+                 "snapshot_list_admin_context/api/v2")
     updated = "2016-06-09T17:48:37+00:00"
 
     def get_controller_extensions(self):
