@@ -14,34 +14,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from setuptools import setup, find_packages
-
-version = '0.8.2'
+from setuptools import setup
 
 setup(
-    name='rackspace_cinder_extensions',
-    version=version,
-    author='Cory Stone',
-    author_email='cory.stone@gmail.com',
-    maintainer='Cory Wright',
-    maintainer_email='corywright@gmail.com',
-    description='Rackspace Cinder Extensions',
-    license='Apache License, Version 2.0',
-    packages=find_packages(exclude=['test']),
-    url='https://github.com/rackerlabs/rackspace_cinder_extensions',
-    install_requires=['python-lunrclient>=1.1.0'],
-    data_files=[
-        ('share/doc/python-rackspace-cinder-extensions',
-         ['CHANGES', 'CONTRIBUTORS', 'LICENSE', 'README.md']),
-    ],
-    classifiers=[
-        "Development Status :: 3 - Alpha",
-        'Environment :: OpenStack',
-        "Intended Audience :: Developers",
-        "Intended Audience :: Information Technology",
-        'Intended Audience :: System Administrators',
-        "License :: OSI Approved :: Apache Software License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-    ]
+    setup_requires=['pbr>=1.8'],
+    pbr=True
 )
