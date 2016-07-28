@@ -35,10 +35,9 @@ class VolumeLunrSessionsController(wsgi.Controller):
         project_id = db_volume['project_id']
         lunr_sessions = []
 
-        lunr_client = LunrClient('admin')
+        lunr_client = LunrClient('admin', timeout=5)
         try:
             lunr_volume = lunr_client.volumes.get(resp_volume['id'])
-            lunr_info = dict(lunr_volume)
             storage_node = lunr_client.nodes.get(lunr_volume['node_id'])
             url = 'http://%s:8081' % storage_node['hostname']
             storage_client = StorageClient(url, timeout=5)
@@ -60,7 +59,6 @@ class VolumeLunrSessionsController(wsgi.Controller):
     def show(self, req, id):
         context = req.environ['cinder.context']
         if authorize(context):
-            authorized = True
             req.environ['cinder.context'] = context.elevated()
             resp_obj = yield
             resp_obj.attach(xml=VolumeLunrSessionsTemplate())
