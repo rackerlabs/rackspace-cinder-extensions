@@ -34,6 +34,7 @@ class VolumeLunrSessionsController(wsgi.Controller):
         db_volume = req.get_db_volume(resp_volume['id'])
         project_id = db_volume['project_id']
         lunr_sessions = []
+        lunr_error = ''
 
         lunr_client = LunrClient('admin', timeout=5)
         try:
@@ -50,10 +51,12 @@ class VolumeLunrSessionsController(wsgi.Controller):
                 if e.code != 404:
                     raise
         except Exception as e:
-            lunr_sessions.append("error: %s" % e)
+            lunr_error = str(e)
 
-        key = "%s:lunr_sessions" % Volume_lunr_sessions.alias
+        key = "%s:sessions" % Volume_lunr_sessions.alias
         resp_volume[key] = lunr_sessions
+        key = "%s:error" % Volume_lunr_sessions.alias
+        resp_volume[key] = lunr_error
 
     @wsgi.extends
     def show(self, req, id):
@@ -84,8 +87,10 @@ class Volume_lunr_sessions(extensions.ExtensionDescriptor):
 
 
 def make_volume(elem):
-    elem.set('{%s}lunr_sessions' % Volume_lunr_sessions.namespace,
-             '%s:lunr_sessions' % Volume_lunr_sessions.alias)
+    elem.set('{%s}sessions' % Volume_lunr_sessions.namespace,
+             '%s:sessions' % Volume_lunr_sessions.alias)
+    elem.set('{%s}error' % Volume_lunr_sessions.namespace,
+             '%s:error' % Volume_lunr_sessions.alias)
 
 
 class VolumeLunrSessionsTemplate(xmlutil.TemplateBuilder):
