@@ -46,7 +46,7 @@ class VolumeLunrSessionsController(wsgi.Controller):
                 export_info = storage_client.exports.get(resp_volume['id'])
                 sessions = export_info.get('sessions', [])
                 for session in sessions:
-                    lunr_sessions.append(session['ip'])
+                    lunr_sessions.append({'initiator_ip': session['ip']})
             except LunrHttpError as e:
                 if e.code != 404:
                     raise
