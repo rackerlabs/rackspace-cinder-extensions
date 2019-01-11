@@ -16,7 +16,7 @@
 
 from setuptools import setup, find_packages
 
-version = '0.8.4'
+version = '0.8.5'
 
 setup(
     name='rackspace_cinder_extensions',
