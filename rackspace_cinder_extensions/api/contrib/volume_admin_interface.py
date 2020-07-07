@@ -131,8 +131,6 @@ class VolumeAdminController(wsgi.Controller):
         try:
             try:
                 if operation:
-                    self.volume_api.create(context, size=1, name='clone2',description='cloning',
-                                           source_volume=volume)
                     LOG.info('Updating volume status to maintenance ')
                     updates = {'migration_status': 'running',
                                'previous_status': volume['status'],
