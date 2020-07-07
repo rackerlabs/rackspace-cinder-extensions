@@ -19,7 +19,7 @@ from cinder.api import extensions
 from cinder.api.openstack import wsgi
 from cinder import volume
 from cinder import exception
-
+from cinder import db
 import lunrclient
 
 LOG = logging.getLogger(__name__)
@@ -31,8 +31,8 @@ authorize_update_node_id = extensions.soft_extension_authorizer('volume',
                                                  'volume_actions:update_node_id')
 authorize_rename_lunr_volume = extensions.soft_extension_authorizer('volume',
                                                  'volume_actions:rename_lunr_volume')
-
-
+authorize_lock_volume = extensions.soft_extension_authorizer('volume',
+                                                 'volume_actions:lock_volume')
 class VolumeAdminController(wsgi.Controller):
     def __init__(self, *args, **kwargs):
         super(wsgi.Controller, self).__init__(*args, **kwargs)
@@ -111,6 +111,41 @@ class VolumeAdminController(wsgi.Controller):
             storage_client = lunrclient.client.StorageClient(url, timeout=5)
             try:
                 storage_client.volumes.rename(id, new_name)
+            except lunrclient.base.LunrHttpError as e:
+                if e.code != 404:
+                    raise
+        except exception.NotFound as e:
+            raise exc.HTTPNotFound(e)
+        return Response(status_int=202)
+
+    @wsgi.action('apply_maintenance')
+    def apply_maintenance(self, req, id, body):
+        """Puts/Moves volumes out of maintenance status"""
+        context = req.environ['cinder.context']
+        if authorize_lock_volume(context):
+            req.environ['cinder.context'] = context.elevated()
+        volume = self._get(context, id)
+        operation = body['apply_maintenance']
+        msg = "%s Volume id %s "
+        LOG.debug(msg % (operation, id))
+        try:
+            try:
+                if operation:
+                    LOG.info('Updating volume status to maintenance ')
+                    updates = {'migration_status': 'running',
+                               'previous_status': volume['status'],
+                               'status': 'maintenance'}
+                    self.volume_api.db.volume_update(context, volume['id'],
+                                                     updates)
+                else:
+                    LOG.info('Updating volume status to %s ' %
+                             volume['previous_status'])
+                    updates = {'migration_status': None,
+                               'previous_status': volume['status'],
+                               'status': volume['previous_status']}
+                    self.volume_api.db.volume_update(context, volume['id'],
+                                                     updates)
+
             except lunrclient.base.LunrHttpError as e:
                 if e.code != 404:
                     raise
