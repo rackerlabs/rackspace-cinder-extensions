@@ -98,7 +98,7 @@ class VolumeAdminController(wsgi.Controller):
         if authorize_rename_lunr_volume(context):
             req.environ['cinder.context'] = context.elevated()
         volume = self._get(context, id)
-        if volume['status'] != 'available':
+        if volume['status'] != 'maintenance':
             raise exc.HTTPBadRequest("Invalid volume status %s " % volume['status'])
         new_name = body['rename_lunr_volume']
         msg = "Changing Volume id from %s to %s"
