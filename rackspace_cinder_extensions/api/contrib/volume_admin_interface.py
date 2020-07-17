@@ -55,7 +55,7 @@ class VolumeAdminController(wsgi.Controller):
         if not new_host:
             raise exc.HTTPBadRequest("Invalid new hostname")
         try:
-            self.volume_api.update(context, volume, {"host": new_host})
+            self.volume_api.db.volume_update(context, id, {"host": new_host})
             volume = self._get(context, id)
         except Exception as e:
             raise exc.HTTPBadRequest(e)
