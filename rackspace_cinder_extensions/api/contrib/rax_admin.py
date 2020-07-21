@@ -60,6 +60,7 @@ authorize_list_lunr_volumes = extensions.extension_authorizer('rax-admin', 'list
 authorize_get_node = extensions.extension_authorizer('rax-admin', 'get-node')
 authorize_get_volume = extensions.extension_authorizer('rax-admin', 'get-volume')
 authorize_status_volumes_all = extensions.extension_authorizer('rax-admin', 'status-volumes-all')
+authorize_update_node = extensions.extension_authorizer('rax-admin', 'update_node')
 
 
 class SafeDict(dict):
@@ -369,6 +370,34 @@ class RaxAdminController(wsgi.Controller):
         # Now compare Cinder/storage data with Lunr data
         # Not completed yet. Needs Cinder sqlalchemy queries
         return dict(compare_volumes=volumes)
+
+
+    @wsgi.action('update_node')
+    def update_node(self, req, body):
+        """updates nodes details like status, weightage, size,
+        storage-hostname', hostname, port
+        {'update_node': {'id':'<>', 'status':'out-of-rotation'}}
+        """
+        context = req.environ['cinder.context']
+        if authorize_update_node(context):
+            req.environ['cinder.context'] = context.elevated()
+        node_details = body.get('update_node', {})
+        id = node_details.get('id', None)
+        if not id:
+            e = "Node id is not provided"
+            LOG.error(e)
+            return {'code': 400, 'msg': e}
+        lunr_client = lunrclient.client.LunrClient('admin', timeout=5)
+        lunr_node = lunr_except_handler(lambda: lunr_client.nodes.get(id))
+        if not lunr_node:
+            raise exc.HTTPNotFound("Node %s not found." % id)
+        del node_details['id']
+        try:
+            lunr_client.nodes.update(id, **node_details)
+        except lunrclient.client.LunrError as e:
+            return {'code': 400, 'msg': str(e)}
+
+        return {'code': 200, 'msg': 'Node updated successfully'}
 
 class Rax_admin(extensions.ExtensionDescriptor):
     """Enable Rax Admin Extension"""
